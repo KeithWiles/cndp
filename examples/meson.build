@@ -10,8 +10,9 @@ dirs = [
     'dlb_test',
     'helloworld',
     'l3fwd-graph',
-    'timer',
     'phil',
+    'sharedmem',
+    'timer',
 ]
 
 if cne_conf.get('HAS_UINTR_SUPPORT')

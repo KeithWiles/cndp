@@ -31,29 +31,39 @@ extern "C" {
 
 #define MC_NO_CHILD_CREATE \
     0x80000000 /**< If set in mc_create() flags then child will not be created */
+#define MC_MEM_ALLOCATED 0x40000000 /**< Memory allocated flag (internal) */
 
 typedef void msgchan_t; /**< Opaque msgchan structure pointer */
 
 typedef struct msgchan_info {
-    cne_ring_t *recv_ring;  /**< Pointers to the recv ring */
-    cne_ring_t *send_ring;  /**< Pointers to the send ring */
-    int child_count;        /**< Number of children */
-    uint64_t send_calls;    /**< Number of send calls */
-    uint64_t send_cnt;      /**< Number of objects sent */
-    uint64_t recv_calls;    /**< Number of receive calls */
-    uint64_t recv_cnt;      /**< Number of objects received */
-    uint64_t recv_timeouts; /**< Number of receive timeouts */
+    cne_ring_t *recv_ring; /**< Pointers to the recv ring */
+    cne_ring_t *send_ring; /**< Pointers to the send ring */
+    uint64_t send_calls;   /**< Number of send calls */
+    uint64_t send_cnt;     /**< Number of objects sent */
+    uint64_t send_full;    /**< Number of objects send ring full */
+    uint64_t recv_calls;   /**< Number of receive calls */
+    uint64_t recv_cnt;     /**< Number of objects received */
+    uint64_t recv_empty;   /**< Number of calls to receive with no values */
 } msgchan_info_t;
 
 /**
- * @brief Create a message channel
+ * @brief Create a message channel using the specified memory and size.
  *
  * Calling mc_create() with an existing channel name will create a child
- * channel attached to the parent channel.
+ * channel attached to the parent channel. The API can be used to create a message
+ * channel in a specific location to help in sharing between processes or the application
+ * needs the msgchan created at a particular location. When addr and size are zero, the
+ * routine works just like mc_create() API.
  *
+ * @param addr
+ *   The address of the to place the message channel structure and data, can be NULL.
+ * @param size
+ *   The size of the message channel memory passed into the routine, can be zero.
  * @param name
  *   The name of the message channel
- * @param sz
+ * @param esize
+ *   The size of the message channel ring entries, if zero use 8 byte default.
+ * @param count
  *   The number of entries in the lockless ring for each direction.
  * @param flags
  *   The cne_ring_t flags for SP/SC or MP/MC type flags, look at cne_ring_create()
@@ -63,7 +73,43 @@ typedef struct msgchan_info {
  * @return
  *   The pointer to the msgchan structure or NULL on error
  */
-CNDP_API msgchan_t *mc_create(const char *name, int sz, uint32_t flags);
+CNDP_API msgchan_t *mc_init(void *addr, size_t size, const char *name, unsigned int esize,
+                            unsigned int count, uint32_t flags);
+
+/**
+ * @brief Create a message channel with the given size of each ring entry.
+ *
+ * Calling mc_create_elem() with an existing channel name will create a child
+ * channel attached to the parent channel.
+ *
+ * @param name
+ *   The name of the message channel
+ * @param esize
+ *   The size of the message channel ring entries in bytes. Can be zero to use 8 byte default.
+ * @param count
+ *   The number of entries in the lockless ring for each direction.
+ * @param flags
+ *   The cne_ring_t flags for SP/SC or MP/MC type flags, look at cne_ring_create()
+ *   Defaults to (RING_F_MP_ENQ | RING_F_MC_DEQ) if flags is zero. Use the flags
+ *   (RING_F_SP_ENQ | RING_F_SC_DEQ);
+ *   Or in the bit MC_NO_CHILD_CREATE to not allow creating a child, NULL will be returned.
+ * @return
+ *   The pointer to the msgchan structure or NULL on error
+ */
+CNDP_API msgchan_t *mc_create(const char *name, unsigned int esize, unsigned int count,
+                              uint32_t flags);
+
+/**
+ * Return the number of bytes required for a message channel structure and rings.
+ *
+ * @param esize
+ *   The number of bytes in a given ring entry, if zero use RING_DFLT_ELEM_SZ (8 bytes).
+ * @param count
+ *   The number of entries each ring.
+ * @return
+ *   Number of bytes needed for the given ring information.
+ */
+ssize_t mc_get_total_memsize(unsigned int esize, unsigned int count);
 
 /**
  * @brief Destroy the message channel and free resources.
@@ -138,6 +184,26 @@ CNDP_API const char *mc_name(msgchan_t *mc);
  *   -1 on error or size of the massage channel rings.
  */
 CNDP_API int mc_size(msgchan_t *mc, int *recv_free_cnt, int *send_free_cnt);
+
+/**
+ * Return the number of entries in the receive ring.
+ *
+ * @param mc
+ *   Pointer to the msgchan structure
+ * @return
+ *   Number of entries in the receive ring
+ */
+CNDP_API int mc_recv_count(msgchan_t *mc);
+
+/**
+ * Return the number of entries in the send ring.
+ *
+ * @param mc
+ *   Pointer to the msgchan structure
+ * @return
+ *   Number of entries in the send ring
+ */
+CNDP_API int mc_send_count(msgchan_t *mc);
 
 /**
  * Return the message channel information structure data

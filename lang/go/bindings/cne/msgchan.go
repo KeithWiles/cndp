@@ -24,14 +24,14 @@ type MsgChannel struct {
 
 // MsgChannelInfo is the structure to hold information about a MsgChannel
 type MsgChannelInfo struct {
-	RecvRing     unsafe.Pointer // RecvRing pointer
-	SendRing     unsafe.Pointer // SendRing pointer
-	ChildCount   int            // Number of children attached to this msgChan
-	SendCalls    uint64         // Number of calls to send routine
-	SendCnt      uint64         // Number of items sent in send routine
-	RecvCalls    uint64         // Number of calls to recv routine
-	RecvCnt      uint64         // Number of items received in recv routine
-	RecvTimeouts uint64         // Number of timeouts the receive routine had
+	RecvRing  unsafe.Pointer // RecvRing pointer
+	SendRing  unsafe.Pointer // SendRing pointer
+	SendCalls uint64         // Number of calls to send routine
+	SendCnt   uint64         // Number of items sent in send routine
+	SendFull  uint64         // Number of times send is full
+	RecvCalls uint64         // Number of calls to recv routine
+	RecvCnt   uint64         // Number of items received in recv routine
+	RecvEmpty uint64         // Number of times received is empty
 }
 
 var msgChannel map[string]*MsgChannel
@@ -51,7 +51,7 @@ func NewMsgChannel(name string, sz uint) (*MsgChannel, error) {
 	cStr := C.CString(name)
 	defer C.free(unsafe.Pointer(cStr))
 
-	mc.mChan = C.mc_create(cStr, C.int(sz), C.uint(0))
+	mc.mChan = C.mc_create(cStr, C.uint(0), C.uint(sz), C.uint(0))
 	if mc.mChan == nil {
 		return nil, fmt.Errorf("unable to create message channel")
 	}
@@ -178,14 +178,14 @@ func (mc *MsgChannel) Info() *MsgChannelInfo {
 	}
 
 	info := &MsgChannelInfo{
-		RecvRing:     mcInfo.recv_ring,
-		SendRing:     mcInfo.send_ring,
-		ChildCount:   int(mcInfo.child_count),
-		SendCalls:    uint64(mcInfo.send_calls),
-		SendCnt:      uint64(mcInfo.send_cnt),
-		RecvCalls:    uint64(mcInfo.recv_calls),
-		RecvCnt:      uint64(mcInfo.recv_cnt),
-		RecvTimeouts: uint64(mcInfo.recv_timeouts),
+		RecvRing:  mcInfo.recv_ring,
+		SendRing:  mcInfo.send_ring,
+		SendCalls: uint64(mcInfo.send_calls),
+		SendCnt:   uint64(mcInfo.send_cnt),
+		SendFull:  uint64(mcInfo.send_full),
+		RecvCalls: uint64(mcInfo.recv_calls),
+		RecvCnt:   uint64(mcInfo.recv_cnt),
+		RecvEmpty: uint64(mcInfo.recv_empty),
 	}
 
 	return info

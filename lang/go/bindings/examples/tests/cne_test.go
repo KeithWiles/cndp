@@ -19,6 +19,7 @@ var (
 	MaxElementCnt        = 256
 	RingSize      uint   = 4096
 	LoopCount     int64  = 500000
+	SysInit       *cne.System
 )
 
 func TestMsgChanStart(t *testing.T) {

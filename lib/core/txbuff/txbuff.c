@@ -60,7 +60,8 @@ txbuff_init(txbuff_t *buffer, uint16_t size, txbuff_error_fn cbfn, void *cb_arg)
     if (!buffer)
         return -1;
 
-    buffer->size = size;
+    buffer->size   = size;
+    buffer->length = 0;        // Normally calloc'd memory, but zero length anyway.
 
     if (!cbfn)
         cbfn = txbuff_drop_callback;

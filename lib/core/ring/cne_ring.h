@@ -41,6 +41,7 @@ extern "C" {
 
 /** The maximum length of a ring name. */
 #define CNE_RING_NAMESIZE CNE_NAME_LEN
+#define RING_DFLT_ELEM_SZ sizeof(void *) /**< The default ring element size*/
 
 #ifdef __cplusplus
 }

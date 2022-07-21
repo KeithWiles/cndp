@@ -35,6 +35,7 @@ const (
 // System structure to hold internal information for binding layer to CNDP
 type System struct {
 	jcfg     *Config
+	sys      *System
 	mu       sync.Mutex
 	tidMap   map[string]*int         // map of thread name to cne uid
 	groupSet map[string]*unix.CPUSet // map of lcore group name to cpu set to use when registering
